@@ -125,7 +125,32 @@ public:
     TIntermediate& intermediate; // helper for making and hooking up pieces of the parse tree
 
 protected:
-    TMap<TString, TExtensionBehavior> extensionBehavior;    // for each extension string, what its current behavior is set to
+    struct TExtensionBehaviorPredicate
+    {
+        bool operator()(const char* a, const char* b) const
+        {
+            if (a == b) // this test is relevant because most (if not all) of the pointers come from constants in Versions.h
+                return true;
+            return strcmp(a, b) == 0;
+        }
+    };
+    struct TExtensionBehaviorHash
+    {
+        std::size_t operator()(const char* s) const
+        {
+            const unsigned _FNV_offset_basis = 2166136261U;
+            const unsigned _FNV_prime = 16777619U;
+            unsigned _Val = _FNV_offset_basis;
+            while(*s != 0) {
+                _Val ^= (unsigned)*s;
+                _Val *= _FNV_prime;
+                ++s;
+            }
+
+            return _Val;
+        }
+    };
+    TUnorderedMap<const char*, TExtensionBehavior, TExtensionBehaviorHash, TExtensionBehaviorPredicate> extensionBehavior;    // for each extension string, what its current behavior is set to
     EShMessages messages;        // errors/warnings/rule-sets
     int numErrors;               // number of compile-time errors encountered
     TInputScanner* currentScanner;
